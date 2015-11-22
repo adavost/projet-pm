@@ -2,16 +2,21 @@
   <head>
     <link rel="stylesheet" type="text/css" href="index.css">
     <script src="game.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-    <script>
+    <script type="text/javascript">
+	
       var socket = io();
       var canvasWidth = 400;
       var canvasHeight = 400;
       var nbPlayers = 0;
       var nbPlayersReady = 0;     
       var idCountdown = -1;
-
+      $(document).ready(function ()
+      {
+	$('#nbPlayersReady').html(nbPlayersReady + " players ready");
+	$('#nbPlayers').html(nbPlayersReady + " players");
+      });
       //Onclick reaction for the button
       function onReady(){
         if( $('input').val() == "Ready !" ){
@@ -48,20 +53,24 @@
 	  idCountdown = -1;
 	}
       }   
-
-    </script>
+</script>
   </head>
+
+
   <body>
     <h1>Sw-eat-s 'em all !</h1>
     <div id='information'>
      <div id='nbPlayers'></div>
-      <div id='nbPlayersReady'>0 player ready</div>
+      <div id='nbPlayersReady'></div>
       <br/>
       <input type='button' value='Ready !' onclick='onReady()'/>
       <br/><br/>
       <div id='gameStatus'> </div>
     </div>
     <canvas width='400' height='400'></canvas>
+
+
+
     <script>
       //Editing the canvas
       var ctx = $('canvas')[0].getContext('2d');
