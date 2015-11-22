@@ -1,116 +1,101 @@
 <html>
   <head>
     <link rel="stylesheet" type="text/css" href="index.css">
+    <script src="constants.js"></script>
     <script src="game.js"></script>
-    <script src="socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-    <script type="text/javascript">
-	
+    <script>
       var socket = io();
       var canvasWidth = 400;
       var canvasHeight = 400;
       var nbPlayers = 0;
       var nbPlayersReady = 0;     
       var idCountdown = -1;
-      $(document).ready(function ()
-      {
-	$('#nbPlayersReady').html(nbPlayersReady + " players ready");
-	$('#nbPlayers').html(nbPlayersReady + " players");
-      });
-      //Onclick reaction for the button
+     
       function onReady(){
-        if( $('input').val() == "Ready !" ){
-          $('input').val("Not ready");
-          socket.emit('ready', ''/*name plutar*/);
-        }
-        else{
-          $('input').val("Ready !");
-          socket.emit('not ready', '');
-        }
+	 $('input').attr('disabled', true);
+         socket.emit('ready', ''/*name plutar*/);
       }
-      //Countdown function. Used before starting the game.
-      function startCountdown(countdown){
-	var text = "Everyone is ready! The game will start in ";
-	if(idCountdown == -1){
-	  idCountdown = setInterval(function(){
-	    countdown--;
-	    $('#gameStatus').text(text + countdown + "...");
-  	    if(countdown == 0){
-	      clearInterval(idCountdown);
-	      idCountdown = -1;
-	      $('#gameStatus').text("Game started! Go go go!");
-	      startGame();
-	    }
-	  }, 1000); 
-	  $('#gameStatus').text(text + countdown + "...");
-        }
-      }
-      //Function to interrupt the countdown
-      function stopCountdown(){
-	if(idCountdown != -1){
-	  $('#gameStatus').text("");
-	  clearInterval(idCountdown);
-	  idCountdown = -1;
-	}
-      }   
-</script>
+    </script>
   </head>
-
 
   <body>
     <h1>Sw-eat-s 'em all !</h1>
     <div id='information'>
-     <div id='nbPlayers'></div>
+      <div id='nbPlayers'></div>
       <div id='nbPlayersReady'></div>
-      <br/>
-      <input type='button' value='Ready !' onclick='onReady()'/>
-      <br/><br/>
-      <div id='gameStatus'> </div>
+      <p></p>
     </div>
+    <input type='button' value='Ready !' onclick='onReady()'/>
+    <br/><br/>
+    <div id='gameStatus'></div>
     <canvas width='400' height='400'></canvas>
-
-
+    
 
     <script>
-      //Editing the canvas
-      var ctx = $('canvas')[0].getContext('2d');
-      ctx.fillStyle = "#F2F0D6";
-      ctx.fillRect(0, 0, 400, 400);
-
+    $(document).ready(function(){
       //Reaction on any player connection/disconnection
       socket.on('connect disconnect', function(nbP){
-        nbPlayers = nbP;
+	nbPlayers = nbP;
         $('#nbPlayers').text(nbPlayers + " players connected");
         if(nbPlayers <= 1){
           var newText = $('#nbPlayers').text().replace("players", "player");
           $('#nbPlayers').text(newText);
         }
       });
+
+      //NEW
+      //On connection, gets the number of players ready
+      socket.on('players information', function(nbPR){
+	$('#nbPlayersReady').text(nbPR + " players ready")
+        if(nbPR <= 1){
+          var newText = $('#nbPlayersReady').text().replace("players", "player");
+          $('#nbPlayersReady').text(newText);
+	}	
+      });
       
       //Reaction on any player notifying he's ready
+      //NEW
       socket.on('ready', function(nbPR){
-        nbPlayersReady = nbPR;
-        $('#nbPlayersReady').text(nbPlayersReady + " players ready")
-        if(nbPlayersReady <= 1){
+        $('#nbPlayersReady').text(nbPR + " players ready")
+        if(nbPR <= 1){
           var newText = $('#nbPlayersReady').text().replace("players", "player");
           $('#nbPlayersReady').text(newText);
         }
-        //Starting the game
-        if(nbPlayersReady == nbPlayers){
-	  startCountdown(5);
-	}   
       });
 
-      //Reaction on any player notifying he's NOT ready
-      socket.on('not ready', function(nbPR){
-        nbPlayersReady = nbPR;
-        $('#nbPlayersReady').text(nbPlayersReady + " players ready")
-        if(nbPlayersReady <= 1){
-          var newText = $('#nbPlayersReady').text().replace("players", "player");
-          $('#nbPlayersReady').text(newText);
-        }
-        stopCountdown();
+      //NEW
+      //Reaction after telling the others you're ready
+      socket.on('ready approved', function(nbPR){	
+	$('p').text("You are ").append(
+	  $('<span></span>')
+	  .attr('id', nbPR-1)
+	  .text("Player " + nbPR)
+	  .css({'color': PLAYERS_COLORS[nbPR-1], 'font-weight': 'bold'}));
+	$('#gameStatus').text("Waiting for other players...");
       });
+
+
+      //NEW
+      //Reaction when every players are ready (countdown)
+      socket.on('game will start', function(countdown){
+	var text = "Everyone is ready ! The game will start in ";
+	$('#gameStatus').text(text + countdown + "...");
+      });
+
+      //NEW
+      //Reaction on countdown over
+      socket.on('game starts', function(data){
+	startGame(data);
+      });
+	
+      //NEW
+      //Reaction on any player move
+      socket.on('player move', function(playerData){
+	movePlayer(playerData);
+      });
+    });
     </script>
   </body>
 </html>
