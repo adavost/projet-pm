@@ -1,0 +1,54 @@
+<body>
+    <h1>Sw-eat-s 'em all !</h1>
+    <div id='information'>
+     <div id="nbPlayers"></div>
+      <div id="nbPlayersReady"></div>
+      <br/>
+      <input type='button' value='Ready !' onclick='onReady()'/>
+      <br/><br/>
+      <div id='gameStatus'> </div>
+    </div>
+    <canvas width='400' height='400'></canvas>
+    <script>
+      //Editing the canvas
+      var ctx = $('canvas')[0].getContext('2d');
+      ctx.fillStyle = "#F2F0D6";
+      ctx.fillRect(0, 0, 400, 400);
+
+      //Reaction on any player connection/disconnection
+      socket.on('connect disconnect', function(nbP){
+        nbPlayers = nbP;
+        $('#nbPlayers').text(nbPlayers + " players connected");
+        if(nbPlayers <= 1){
+          var newText = $('#nbPlayers').text().replace("players", "player");
+          $('#nbPlayers').text(newText);
+        }
+      });
+      
+      //Reaction on any player notifying he's ready
+      socket.on('ready', function(nbPR){
+        nbPlayersReady = nbPR;
+        $('#nbPlayersReady').text(nbPlayersReady + " players ready")
+        if(nbPlayersReady <= 1){
+          var newText = $('#nbPlayersReady').text().replace("players", "player");
+          $('#nbPlayersReady').text(newText);
+        }
+        //Starting the game
+        if(nbPlayersReady == nbPlayers){
+	  startCountdown(5);
+	}   
+      });
+
+      //Reaction on any player notifying he's NOT ready
+      socket.on('not ready', function(nbPR){
+        nbPlayersReady = nbPR;
+        $('#nbPlayersReady').text(nbPlayersReady + " players ready")
+        if(nbPlayersReady <= 1){
+          var newText = $('#nbPlayersReady').text().replace("players", "player");
+          $('#nbPlayersReady').text(newText);
+        }
+        stopCountdown();
+      });
+    </script>
+  </body>
+</html>
