@@ -104,12 +104,27 @@
       				socket.on('player move', function(playerData){
 					movePlayer(playerData);
       				});
-	  
+					
+					//Reaction when a player eats a sweet
       				socket.on('sweet eaten', function(data){
 					var chaine= "#score"+data.playerId;
 					$(chaine).html(data.playerScore);
 					hideSweet(data);
     				});
+					
+					socket.on('game over', function(winnerId){
+						if(winnerId == $('span').attr('id')){
+							$('#gameStatus').text("Game over: you won!");
+							alert("You won !");
+						}
+						else{
+							var tmp = winnerId;
+							tmp++;
+							$('#gameStatus').text("Game over: Player " + tmp + " won");
+						}
+						$('input').removeAttr('disabled');
+						//Reinit tout
+					});
 			});
     		</script>
   	</body>

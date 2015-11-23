@@ -115,11 +115,18 @@ io.on('connection', function(socket){
 	sweetsCoords.splice(i,1);
 	players[data.playerId].score++;
 	io.emit('sweet eaten', {playerId: data.playerId, playerScore: players[data.playerId].score, sweetIndex: i});
-	if(sweetsCoords.length == 0){
-	  //END OF THE GAME
-	}
       }
     }
+	if(sweetsCoords.length == 0){
+	  //End of the game
+	  var winnerId = 0;
+		for(i=1; i<players.length; i++){
+			if(players[i].score > players[winnerId].score){
+				winnerId = i;
+			}
+		}
+		io.emit('game over', winnerId);
+	}
   });
   
   socket.on('disconnect', function(){
