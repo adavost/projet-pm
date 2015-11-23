@@ -18,15 +18,15 @@ var gameData = {
 };
 
 function generateGameData(){
-	//Setting the number of plyaers for the game
+	//Setting the number of players for the game
 	gameData.nbPlayers = nbPlayersReady;
 	
 	//Generating random sweets positions
 	sweetsCoords = [];
 	for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
 		sweetsCoords.push({
-			x: Math.floor(Math.random()*395), 
-			y: Math.floor(Math.random()*395)
+			x: Math.floor(Math.random()*390)+5, 
+			y: Math.floor(Math.random()*390)+5
 		});
 	}
 	gameData.sweetsCoords = sweetsCoords;
@@ -79,24 +79,56 @@ io.on('connection', function(socket){
   	});
 
   	socket.on('player move', function(data){
+		var coordonnes=[];
+		for(i=0;i<gameData.players.length;i++){
+			if(i!= data.playerId){
+				coordonnes.push(gameData.players[i].coords);
+			}
+		}
+		var placeTaken = false;
     		//Changing player coords
     		switch(data.keyPressed){
 			case "ArrowUp":
-				if(gameData.players[data.playerId].coords.y-20 >= 0) gameData.players[data.playerId].coords.y -= 20;
-				else gameData.players[data.playerId].coords.y = 0;
+				for(i=0;i<coordonnes.length;i++){
+					if((coordonnes[i].y <= (gameData.players[data.playerId].coords.y)) 
+						&&(coordonnes[i].y > (gameData.players[data.playerId].coords.y-40))
+						&&(coordonnes[i].x <= (gameData.players[data.playerId].coords.x+20))
+						&&(coordonnes[i].x >= (gameData.players[data.playerId].coords.x-20)))placeTaken=true;
+				} 
+				if(!placeTaken && gameData.players[data.playerId].coords.y-20 >= 0) gameData.players[data.playerId].coords.y -= 20;
+				else if(!placeTaken) gameData.players[data.playerId].coords.y = 0;
 				break;
 			case "ArrowDown":
-       			if(gameData.players[data.playerId].coords.y+20 <= 380) gameData.players[data.playerId].coords.y += 20;
-				else gameData.players[data.playerId].coords.y = 380;
+				for(i=0;i<coordonnes.length;i++){
+					if((coordonnes[i].y < (gameData.players[data.playerId].coords.y+40)) 
+						&&(coordonnes[i].y >= (gameData.players[data.playerId].coords.y))
+						&&(coordonnes[i].x <= (gameData.players[data.playerId].coords.x+20))
+						&&(coordonnes[i].x >= (gameData.players[data.playerId].coords.x-20)))placeTaken=true;
+				}  
+       				if(!placeTaken && gameData.players[data.playerId].coords.y+20 <= 380) gameData.players[data.playerId].coords.y += 20;
+				else if(!placeTaken) gameData.players[data.playerId].coords.y = 380;
 				break;
 			case "ArrowLeft":
-			    if(gameData.players[data.playerId].coords.x-20 >= 0) gameData.players[data.playerId].coords.x -= 20;
-				else gameData.players[data.playerId].coords.x = 0;
+			    	for(i=0;i<coordonnes.length;i++){
+					if((coordonnes[i].x > (gameData.players[data.playerId].coords.x-40)) 
+						&&(coordonnes[i].x <= (gameData.players[data.playerId].coords.x))
+						&&(coordonnes[i].y <= (gameData.players[data.playerId].coords.y+20))
+						&&(coordonnes[i].y >= (gameData.players[data.playerId].coords.y-20)))placeTaken=true;
+				}
+			    	if(!placeTaken && gameData.players[data.playerId].coords.x-20 >= 0) gameData.players[data.playerId].coords.x -= 20;
+				else if(!placeTaken)gameData.players[data.playerId].coords.x = 0;
 				break;
 			case "ArrowRight":
-        		if(gameData.players[data.playerId].coords.x+20 <= 380) gameData.players[data.playerId].coords.x += 20;
-				else gameData.players[data.playerId].coords.x = 380;
-   		}    
+				for(i=0;i<coordonnes.length;i++){
+					if((coordonnes[i].x < (gameData.players[data.playerId].coords.x+40)) 
+						&&(coordonnes[i].x >= (gameData.players[data.playerId].coords.x))
+						&&(coordonnes[i].y <= (gameData.players[data.playerId].coords.y+20))
+						&&(coordonnes[i].y >= (gameData.players[data.playerId].coords.y-20)))placeTaken=true;
+				}
+        			if(!placeTaken && gameData.players[data.playerId].coords.x+20 <= 380) gameData.players[data.playerId].coords.x += 20;
+				else if(!placeTaken) gameData.players[data.playerId].coords.x = 380;
+   		} 
+		placeTaken = false;   
    		io.emit('player move', {id: data.playerId, coords: gameData.players[data.playerId].coords});
    		//Comparing with sweets coords
 		var maxDistToEat = gameData.playersSize/2 + gameData.sweetsSize;

@@ -42,12 +42,6 @@
           				var newText = $('#nbPlayers').text().replace("players", "player");
           				$('#nbPlayers').text(newText);
         			}
-					var chaine="<thead><th>Players</th><th>Score</th></thead>"; 
-					for(i=0;i<nbP;i++){
-						if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\'class=\'pair\'> 0 </td></tr>";
-						if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\'class=\'pair\'> 0 </td></tr>";
-					}
-					$('#tabscore').html(chaine);
       			});
 		
       			//Reaction on connection (gets information)
@@ -76,6 +70,12 @@
           				var newText = $('#nbPlayersReady').text().replace("players", "player");
           				$('#nbPlayersReady').text(newText);
         			}
+				var chaine="<thead><th>Players</th><th>Score</th></thead>"; 
+				for(i=0;i<nbPR;i++){
+					if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\'class=\'pair\'> 0 </td></tr>";
+					if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\'class=\'pair\'> 0 </td></tr>";
+				}
+				$('#tabscore').html(chaine);
       			});
       				
       			//Reaction after telling the others you're ready
@@ -91,6 +91,13 @@
 	
       			//Reaction when every players are ready (countdown)
 				socket.on('game will start', function(countdown){
+					if($('span').attr('id') == null){
+						$('p').text("You are ").append(
+							$('<span></span>')
+							.text("Spectator")
+							.css({'color': 'grey', 'font-weight': 'bold'})
+						);
+					}
 					var text = "Everyone is ready ! The game will start in ";
 					$('#gameStatus').text(text + countdown + "...");
 					$('input').attr('disabled', true);
@@ -130,6 +137,7 @@
 					if(winnerId == $('span').attr('id')){
 						alert("WINNER !!!");
 					}
+					$('span').removeAttr('id');
 				});
 				
 			});
