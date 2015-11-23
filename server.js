@@ -8,18 +8,39 @@ app.use(express.static(path.join(__dirname, 'public')));
 var nbPlayers = 0;
 var nbPlayersReady = 0;
 var nbSweetsPerPlayer = 5;
+var nbSweets = 0;
+var sweetsCoords = null;
+var players = null;
+var playersSize = 20;
+var sweetsRadius = 5;
 var dataForClient = function(){
-	var randCoords = [];
 	var ret = {
-		nbPlayers: nbPlayers,
-		nbSweetsPerPlayer: 5,
-		sweetsCoords: null
+		nbPlayers: nbPlayersReady,
+		playersSize: 20,
+		sweetsSize: 5,
+		sweetsCoords: null,
+		players: null
 	};
-
-	for(i=0; i<nbPlayersReady * ret.nbSweetsPerPlayer; i++){
-		randCoords.push({x: Math.random(), y: Math.random()});
+	
+	//Generating random sweets positions
+	sweetsCoords = [];
+	for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
+		sweetsCoords.push({
+			x: Math.floor(Math.random()*400), 
+			y: Math.floor(Math.random()*400)
+		});
 	}
-	ret.sweetsCoords = randCoords;
+	ret.sweetsCoords = sweetsCoords;
+
+	//Initializing players positions
+	players = [{coords:{x:5,y:5}, score:0}, {coords:{x:375,y:375}, score:0}, 
+		{coords:{x:375,y:5}, score:0}, {coords:{x:5,y:375}, score:0}];
+	for(i=players.length; i>nbPlayersReady; i--){
+		players.pop();	
+	}		
+	ret.players = players;	
+
+	nbSweets = nbSweetsPerPlayer * nbPlayersReady;
 	
 	return ret;
 }		
@@ -47,7 +68,7 @@ io.on('connection', function(socket){
 		io.emit('game will start', countdown);
 		if(countdown == 0){
 			clearInterval(idInterval);
-    			//Generating random numbers for sweets positions
+    			//Generating random sweets positions
     			var sweetsCoords = []
     			for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
 				sweetsCoords.push({
@@ -64,8 +85,41 @@ io.on('connection', function(socket){
     }
   });
 
-  socket.on('player move', function(playerData){
-    io.emit('player move', playerData);
+  socket.on('player move', function(data){
+    //Changing player coords
+    switch(data.keyPressed){
+      case "ArrowUp":
+        players[data.playerId].coords.y -= 20;
+	break;
+      case "ArrowDown":
+        players[data.playerId].coords.y += 20;
+	break;
+      case "ArrowLeft":
+        players[data.playerId].coords.x -= 20;
+	break;
+      case "ArrowRight":
+        players[data.playerId].coords.x += 20;
+    }    
+    io.emit('player move', 
+	{id: data.playerId, coords: players[data.playerId].coords});
+    //Comparing with sweets coords
+    var maxDistToEat = playersSize/2 + sweetsRadius;
+    var diffX = 0, diffY = 0;
+    for(i=0; i<sweetsCoords.length; i++){
+      diffX = Math.abs(players[data.playerId].coords.x + playersSize/2 
+	- sweetsCoords[i].x);
+      diffY = Math.abs(players[data.playerId].coords.y + playersSize/2 
+	- sweetsCoords[i].y);
+      if(diffX < maxDistToEat && diffY < maxDistToEat){
+	//Removing the sweet + updating player score
+	sweetsCoords.splice(i,1);
+	players[data.playerId].score++;
+	io.emit('sweet eaten', {playerId: data.playerId, playerScore: players[data.playerId].score, sweetIndex: i});
+	if(sweetsCoords.length == 0){
+	  //END OF THE GAME
+	}
+      }
+    }
   });
   
   socket.on('disconnect', function(){
