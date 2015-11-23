@@ -7,11 +7,7 @@
     		<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     		<script>
       			var socket = io();
-      			var canvasWidth = 400;
-      			var canvasHeight = 400;
-      			var nbPlayersReady = 0;     
-      			var idCountdown = -1;
-			var ready = false;
+				var ready = false;
      	
       			function onReady(){
 		 		$('input').attr('disabled', true);
@@ -21,112 +17,122 @@
   	</head>
 
   	<body>
-    		<h1>Sw-eat-s 'em all !</h1>
-    		<div id='information'>
-      			<div id='nbPlayers'></div>
-      			<div id='nbPlayersReady'></div>
-      			<p></p>
-    		</div>
-    		<input type='button' value='Ready !' onclick='onReady()'/>
-    		<br/><br/>
-    		<div id='gameStatus'></div>
-    		<div id='global'>
+    	<h1>Sw-eat-s 'em all !</h1>
+    	<div id='information'>
+      		<div id='nbPlayers'></div>
+      		<div id='nbPlayersReady'></div>
+      		<p></p>
+    	</div>
+    	<input type='button' value='Ready !' onclick='onReady()'/>
+    	<br/><br/>
+    	<div id='gameStatus'></div>
+    	<div id='global'>
 			<canvas width='400' height='400'></canvas>
 			<div id='score'>
 				<table id='tabscore'></table>
 			</div>
-    		</div>
-    
-    
-    		<script>
+    	</div>
+        
+    	<script>
 			$(document).ready(function(){
-	      			//Reaction on any player connection/disconnection
-      				socket.on('connect disconnect', function(nbP){
-        				$('#nbPlayers').text(nbP + " players connected");
-        				if(nbP <= 1){
-          					var newText = $('#nbPlayers').text().replace("players", "player");
-          					$('#nbPlayers').text(newText);
-        				}
+	      		//Reaction on any player connection/disconnection
+      			socket.on('connect disconnect', function(nbP){
+        			$('#nbPlayers').text(nbP + " players connected");
+        			if(nbP <= 1){
+          				var newText = $('#nbPlayers').text().replace("players", "player");
+          				$('#nbPlayers').text(newText);
+        			}
 					var chaine="<thead><th>Players</th><th>Score</th></thead>"; 
 					for(i=0;i<nbP;i++){
-						if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\' class=\'pair\'> 0 </td></tr>";
-						if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\' class=\'pair\'> 0 </td></tr>";
+						if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\'class=\'pair\'> 0 </td></tr>";
+						if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\'class=\'pair\'> 0 </td></tr>";
 					}
 					$('#tabscore').html(chaine);
-      				});
+      			});
 		
-      				//NEW
-      				//On connection, gets the number of players ready
-      				socket.on('players information', function(nbPR){
-					$('#nbPlayersReady').text(nbPR + " players ready")
-        				if(nbPR <= 1){
-          					var newText = $('#nbPlayersReady').text().replace("players", "player");
-          					$('#nbPlayersReady').text(newText);
+      			//Reaction on connection (gets information)
+      			socket.on('players information', function(data){
+					$('#nbPlayersReady').text(data.nbPR + " players ready")
+        			if(data.nbPR <= 1){
+          				var newText = $('#nbPlayersReady').text().replace("players", "player");
+          				$('#nbPlayersReady').text(newText);
 					}	
-      				});
+					if(data.gameStarted){
+						showGame(data.gameData);
+						$('input').attr('disabled', true);
+						$('p').text("You are ").append(
+							$('<span></span>')
+							.text("Spectator")
+							.css({'color': 'grey', 'font-weight': 'bold'})
+						);
+						$('#gameStatus').text("Game started! GO GO GO");
+					}
+      			});
       
-      				//Reaction on any player notifying he's ready
-      				//NEW
-      				socket.on('ready', function(nbPR){
-			        	$('#nbPlayersReady').text(nbPR + " players ready")
-        				if(nbPR <= 1){
-          					var newText = $('#nbPlayersReady').text().replace("players", "player");
-          					$('#nbPlayersReady').text(newText);
-        				}
-      				});
-
-      				//NEW
-      				//Reaction after telling the others you're ready
-      				socket.on('ready approved', function(nbPR){	
+      			//Reaction on any player notifying he's ready
+      			socket.on('ready', function(nbPR){
+			       	$('#nbPlayersReady').text(nbPR + " players ready")
+        			if(nbPR <= 1){
+          				var newText = $('#nbPlayersReady').text().replace("players", "player");
+          				$('#nbPlayersReady').text(newText);
+        			}
+      			});
+      				
+      			//Reaction after telling the others you're ready
+      			socket.on('ready approved', function(nbPR){	
 					$('p').text("You are ").append(
-	  				$('<span></span>')
-	  				.attr('id', nbPR-1)
-	  				.text("Player " + nbPR)
-	  				.css({'color': PLAYERS_COLORS[nbPR-1], 'font-weight': 'bold'}));
+						$('<span></span>')
+						.attr('id', nbPR-1)
+						.text("Player " + nbPR)
+						.css({'color': PLAYERS_COLORS[nbPR-1], 'font-weight': 'bold'})
+					);
 					$('#gameStatus').text("Waiting for other players...");
-      				});
-
-
-      				//NEW
-      				//Reaction when every players are ready (countdown)
+      			});
+	
+      			//Reaction when every players are ready (countdown)
 				socket.on('game will start', function(countdown){
 					var text = "Everyone is ready ! The game will start in ";
 					$('#gameStatus').text(text + countdown + "...");
-      				});
+					$('input').attr('disabled', true);
+					clearGame();
+      			});
 
-      				//NEW
-      				//Reaction on countdown over
-      				socket.on('game starts', function(data){
+      			//Reaction on countdown over
+      			socket.on('game starts', function(data){
+					$('#gameStatus').text("Game started! GO GO GO");
 					startGame(data);
  				});
-	
-      				//NEW
-      				//Reaction on any player move
-      				socket.on('player move', function(playerData){
+      				
+      			//Reaction on any player move
+      			socket.on('player move', function(playerData){
 					movePlayer(playerData);
-      				});
+      			});
 					
-					//Reaction when a player eats a sweet
-      				socket.on('sweet eaten', function(data){
+				//Reaction when a player eats a sweet
+      			socket.on('sweet eaten', function(data){
 					var chaine= "#score"+data.playerId;
 					$(chaine).html(data.playerScore);
 					hideSweet(data);
-    				});
+    			});
 					
-					socket.on('game over', function(winnerId){
-						if(winnerId == $('span').attr('id')){
-							$('#gameStatus').text("Game over: you won!");
-							alert("You won !");
-						}
-						else{
-							var tmp = winnerId;
-							tmp++;
-							$('#gameStatus').text("Game over: Player " + tmp + " won");
-						}
-						$('input').removeAttr('disabled');
-						//Reinit tout
-					});
+				//Reaction when the game ends
+				socket.on('game over', function(winnerId){
+					var tmp = winnerId;
+					tmp++;
+					$('#gameStatus').text("Game over: the winner is ").append(
+						$('<span></span>')
+						.text("Player " + tmp)
+						.css({'color': PLAYERS_COLORS[winnerId], 'font-weight': 'bold'})
+					);
+					$('input').removeAttr('disabled');
+					detachReactions();
+					
+					if(winnerId == $('span').attr('id')){
+						alert("WINNER !!!");
+					}
+				});
+				
 			});
-    		</script>
+    	</script>
   	</body>
 </html>

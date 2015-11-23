@@ -5,22 +5,21 @@ var io = require('socket.io')(http);
 var path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
 
+gameStarted = false;
 var nbPlayers = 0;
 var nbPlayersReady = 0;
 var nbSweetsPerPlayer = 5;
-var nbSweets = 0;
-var sweetsCoords = null;
-var players = null;
-var playersSize = 20;
-var sweetsRadius = 5;
-var dataForClient = function(){
-	var ret = {
-		nbPlayers: nbPlayersReady,
-		playersSize: 20,
-		sweetsSize: 5,
-		sweetsCoords: null,
-		players: null
-	};
+var gameData = {
+	nbPlayers: 0,
+	playersSize: 20,
+	sweetsSize: 5,
+	sweetsCoords: null,
+	players: null
+};
+
+function generateGameData(){
+	//Setting the number of plyaers for the game
+	gameData.nbPlayers = nbPlayersReady;
 	
 	//Generating random sweets positions
 	sweetsCoords = [];
@@ -30,19 +29,19 @@ var dataForClient = function(){
 			y: Math.floor(Math.random()*395)
 		});
 	}
-	ret.sweetsCoords = sweetsCoords;
+	gameData.sweetsCoords = sweetsCoords;
 
 	//Initializing players positions
-	players = [{coords:{x:5,y:5}, score:0}, {coords:{x:375,y:375}, score:0}, 
-		{coords:{x:375,y:5}, score:0}, {coords:{x:5,y:375}, score:0}];
-	for(i=players.length; i>nbPlayersReady; i--){
+	var players = [
+		{ coords:{x:5,y:5}, score:0 }, 
+		{ coords:{x:375,y:375}, score:0 }, 
+		{ coords:{x:375,y:5}, score:0 }, 
+		{ coords:{x:5,y:375}, score:0 }
+	];
+	while(players.length > nbPlayersReady){
 		players.pop();	
 	}		
-	ret.players = players;	
-
-	nbSweets = nbSweetsPerPlayer * nbPlayersReady;
-	
-	return ret;
+	gameData.players = players;	
 }		
 
 
@@ -53,29 +52,24 @@ app.get('/', function(req, res){
 io.on('connection', function(socket){
   	nbPlayers++;
   	io.emit('connect disconnect', nbPlayers);
-  	socket.emit('players information', nbPlayersReady);
+  	socket.emit('players information', {nbPR: nbPlayersReady, gameStarted: gameStarted, gameData: gameData});
   	console.log('A new player has joined the game');
+	
   	socket.on('ready', function(){
     		nbPlayersReady++;
     		socket.emit('ready approved', nbPlayersReady);
     		io.emit('ready', nbPlayersReady);
     		//Check if the game should start
-    		if(nbPlayersReady == nbPlayers){
+    		if(nbPlayersReady == nbPlayers || nbPlayersReady == 4){
 			//Starts a 5sec countdown before the game starts
+			gameStarted = true;
 			var countdown = 5;
 			var idInterval = setInterval(function(){
 				io.emit('game will start', countdown);
 				if(countdown == 0){
 					clearInterval(idInterval);
-    					//Generating random sweets positions
-    					var sweetsCoords = []
-    					for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
-						sweetsCoords.push({
-							x: Math.random(), 
-							y: Math.random()
-      						});
-    					}
-					io.emit('game starts', dataForClient());
+					generateGameData();
+					io.emit('game starts', gameData);
 				}
 				else countdown--;
 			}, 1000);
@@ -88,45 +82,47 @@ io.on('connection', function(socket){
     		//Changing player coords
     		switch(data.keyPressed){
 			case "ArrowUp":
-		    	    	if(players[data.playerId].coords.y-20 >= 0)players[data.playerId].coords.y -= 20;
-				else players[data.playerId].coords.y = 0;
+				if(gameData.players[data.playerId].coords.y-20 >= 0) gameData.players[data.playerId].coords.y -= 20;
+				else gameData.players[data.playerId].coords.y = 0;
 				break;
 			case "ArrowDown":
-       				if(players[data.playerId].coords.y+20 <= 380)players[data.playerId].coords.y += 20;
-				else players[data.playerId].coords.y = 380;
+       			if(gameData.players[data.playerId].coords.y+20 <= 380) gameData.players[data.playerId].coords.y += 20;
+				else gameData.players[data.playerId].coords.y = 380;
 				break;
 			case "ArrowLeft":
-			        if(players[data.playerId].coords.x-20 >= 0)players[data.playerId].coords.x -= 20;
-				else players[data.playerId].coords.x = 0;
+			    if(gameData.players[data.playerId].coords.x-20 >= 0) gameData.players[data.playerId].coords.x -= 20;
+				else gameData.players[data.playerId].coords.x = 0;
 				break;
 			case "ArrowRight":
-        			if(players[data.playerId].coords.x+20 <= 380)players[data.playerId].coords.x += 20;
-				else players[data.playerId].coords.x = 380;
+        		if(gameData.players[data.playerId].coords.x+20 <= 380) gameData.players[data.playerId].coords.x += 20;
+				else gameData.players[data.playerId].coords.x = 380;
    		}    
-   		io.emit('player move', {id: data.playerId, coords: players[data.playerId].coords});
+   		io.emit('player move', {id: data.playerId, coords: gameData.players[data.playerId].coords});
    		//Comparing with sweets coords
-    		var maxDistToEat = playersSize/2 + sweetsRadius;
-    		var diffX = 0, diffY = 0;
-    		for(i=0; i<sweetsCoords.length; i++){
-    		  	diffX = Math.abs(players[data.playerId].coords.x + playersSize/2 - sweetsCoords[i].x);
-      			diffY = Math.abs(players[data.playerId].coords.y + playersSize/2 - sweetsCoords[i].y);
-      			if(diffX < maxDistToEat && diffY < maxDistToEat){
+		var maxDistToEat = gameData.playersSize/2 + gameData.sweetsSize;
+		var diffX = 0, diffY = 0;
+		for(i=0; i<gameData.sweetsCoords.length; i++){
+			diffX = Math.abs(gameData.players[data.playerId].coords.x + gameData.playersSize/2 - gameData.sweetsCoords[i].x);
+			diffY = Math.abs(gameData.players[data.playerId].coords.y + gameData.playersSize/2 - gameData.sweetsCoords[i].y);
+			if(diffX < maxDistToEat && diffY < maxDistToEat){
 				//Removing the sweet + updating player score
-				sweetsCoords.splice(i,1);
-				players[data.playerId].score++;
-				io.emit('sweet eaten', {playerId: data.playerId, playerScore: players[data.playerId].score, sweetIndex: i});
-      			}
-    		}
-		if(sweetsCoords.length == 0){
+				gameData.sweetsCoords.splice(i,1);
+				gameData.players[data.playerId].score++;
+				io.emit('sweet eaten', {playerId: data.playerId, playerScore: gameData.players[data.playerId].score, sweetIndex: i});
+			}
+		}
+		if(gameData.sweetsCoords.length == 0){
 	  		//End of the game
 	  		var winnerId = 0;
-			for(i=1; i<players.length; i++){
-				if(players[i].score > players[winnerId].score){
+			for(i=1; i<gameData.players.length; i++){
+				if(gameData.players[i].score > gameData.players[winnerId].score){
 					winnerId = i;
 				}
 			}
 			io.emit('game over', winnerId);
 			nbPlayersReady = 0;
+			gameStarted = false;
+			io.emit('players information', {nbPR: 0, gameStarted: false, gameData: null});
 		}	
  	});
   
