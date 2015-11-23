@@ -9,7 +9,6 @@
       var socket = io();
       var canvasWidth = 400;
       var canvasHeight = 400;
-      var nbPlayers = 0;
       var nbPlayersReady = 0;     
       var idCountdown = -1;
      
@@ -44,18 +43,16 @@
     $(document).ready(function(){
       //Reaction on any player connection/disconnection
       socket.on('connect disconnect', function(nbP){
-	nbPlayers = nbP;
         $('#nbPlayers').text(nbPlayers + " players connected");
         if(nbPlayers <= 1){
           var newText = $('#nbPlayers').text().replace("players", "player");
           $('#nbPlayers').text(newText);
         }
 	var chaine="<thead><th>Players</th><th>Score</th></thead>"; 
-	for(i=1;i<(nbPlayers+1);i++){
+	for(i=1;i<(nbP+1);i++){
 		if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+i+"</td><td class=\'pair\'> 0 </td></tr>";
 		if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+i+"</td><td class=\'pair\'> 0 </td></tr>";
 	}
-	console.log(chaine);
 	$('#tabscore').html(chaine);
       });
 

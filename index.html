@@ -56,9 +56,8 @@
 		if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\' class=\'pair\'> 0 </td></tr>";
 		if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\' class=\'pair\'> 0 </td></tr>";
 	}
-	console.log(chaine);
 	$('#tabscore').html(chaine);
-      });
+    });
 
 
       //NEW
