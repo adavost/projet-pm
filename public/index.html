@@ -106,6 +106,10 @@
       socket.on('player move', function(playerData){
 	movePlayer(playerData);
       });
+	  
+	  socket.on('sweet eaten', function(data){
+	//AJOUTER DES TRUCS ICI ANTOINETTE : Pour recuperer le score : data.playerScore
+	hideSweet(data);
     });
     </script>
   </body>
