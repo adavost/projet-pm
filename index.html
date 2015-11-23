@@ -52,9 +52,9 @@
         }
       });
 	var chaine="<thead><th>Players</th><th>Score</th></thead>"; 
-	for(i=1;i<(nbPlayers+1);i++){
-		if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+i+"</td><td class=\'pair\'> 0 </td></tr>";
-		if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+i+"</td><td class=\'pair\'> 0 </td></tr>";
+	for(i=0;i<nbPlayers;i++){
+		if(i%2 == 1)chaine=chaine+"<tr id=\'"+i+"\' class=\'impair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\' class=\'pair\'> 0 </td></tr>";
+		if(i%2 == 0)chaine=chaine+"<tr id=\'"+i+"\' class=\'pair\'><td class=\'impair\'> Player "+(i+1)+"</td><td id=\'score"+i+"\' class=\'pair\'> 0 </td></tr>";
 	}
 	console.log(chaine);
 	$('#tabscore').html(chaine);
@@ -115,6 +115,8 @@
       //NEW
       //Reaction when a player eats a sweet
       socket.on('sweet eaten', function(data){
+	chaine= "#score"+data.playerId;
+	$(chaine).html(data.playerScore);
 	//AJOUTER DES TRUCS ICI ANTOINETTE ! Pour recuperer le score : data.playerScore
 	hideSweet(data);
       });
