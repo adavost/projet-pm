@@ -26,8 +26,8 @@ var dataForClient = function(){
 	sweetsCoords = [];
 	for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
 		sweetsCoords.push({
-			x: Math.floor(Math.random()*400), 
-			y: Math.floor(Math.random()*400)
+			x: Math.floor(Math.random()*395), 
+			y: Math.floor(Math.random()*395)
 		});
 	}
 	ret.sweetsCoords = sweetsCoords;
@@ -47,97 +47,98 @@ var dataForClient = function(){
 
 
 app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
+  	res.sendFile(__dirname + '/index.html');
 });
 
 io.on('connection', function(socket){
-  nbPlayers++;
-  io.emit('connect disconnect', nbPlayers);
-  socket.emit('players information', nbPlayersReady);
-  console.log('A new player has joined the game');
+  	nbPlayers++;
+  	io.emit('connect disconnect', nbPlayers);
+  	socket.emit('players information', nbPlayersReady);
+  	console.log('A new player has joined the game');
+  	socket.on('ready', function(){
+    		nbPlayersReady++;
+    		socket.emit('ready approved', nbPlayersReady);
+    		io.emit('ready', nbPlayersReady);
+    		//Check if the game should start
+    		if(nbPlayersReady == nbPlayers){
+			//Starts a 5sec countdown before the game starts
+			var countdown = 5;
+			var idInterval = setInterval(function(){
+				io.emit('game will start', countdown);
+				if(countdown == 0){
+					clearInterval(idInterval);
+    					//Generating random sweets positions
+    					var sweetsCoords = []
+    					for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
+						sweetsCoords.push({
+							x: Math.random(), 
+							y: Math.random()
+      						});
+    					}
+					io.emit('game starts', dataForClient());
+				}
+				else countdown--;
+			}, 1000);
+			io.emit('game will start', countdown);
+			countdown--;
+    		}
+  	});
 
-  socket.on('ready', function(){
-    nbPlayersReady++;
-    socket.emit('ready approved', nbPlayersReady);
-    io.emit('ready', nbPlayersReady);
-    //Check if the game should start
-    if(nbPlayersReady == nbPlayers){
-	//Starts a 5sec countdown before the game starts
-	var countdown = 5;
-	var idInterval = setInterval(function(){
-		io.emit('game will start', countdown);
-		if(countdown == 0){
-			clearInterval(idInterval);
-    			//Generating random sweets positions
-    			var sweetsCoords = []
-    			for(i=0; i<nbPlayersReady * nbSweetsPerPlayer; i++){
-				sweetsCoords.push({
-					x: Math.random(), 
-					y: Math.random()
-      				});
-    			}
-			io.emit('game starts', dataForClient());
-		}
-		else countdown--;
-	}, 1000);
-	io.emit('game will start', countdown);
-	countdown--;
-    }
-  });
-
-  socket.on('player move', function(data){
-    //Changing player coords
-    switch(data.keyPressed){
-      case "ArrowUp":
-        players[data.playerId].coords.y -= 20;
-	break;
-      case "ArrowDown":
-        players[data.playerId].coords.y += 20;
-	break;
-      case "ArrowLeft":
-        players[data.playerId].coords.x -= 20;
-	break;
-      case "ArrowRight":
-        players[data.playerId].coords.x += 20;
-    }    
-    io.emit('player move', 
-	{id: data.playerId, coords: players[data.playerId].coords});
-    //Comparing with sweets coords
-    var maxDistToEat = playersSize/2 + sweetsRadius;
-    var diffX = 0, diffY = 0;
-    for(i=0; i<sweetsCoords.length; i++){
-      diffX = Math.abs(players[data.playerId].coords.x + playersSize/2 
-	- sweetsCoords[i].x);
-      diffY = Math.abs(players[data.playerId].coords.y + playersSize/2 
-	- sweetsCoords[i].y);
-      if(diffX < maxDistToEat && diffY < maxDistToEat){
-	//Removing the sweet + updating player score
-	sweetsCoords.splice(i,1);
-	players[data.playerId].score++;
-	io.emit('sweet eaten', {playerId: data.playerId, playerScore: players[data.playerId].score, sweetIndex: i});
-      }
-    }
-	if(sweetsCoords.length == 0){
-	  //End of the game
-	  var winnerId = 0;
-		for(i=1; i<players.length; i++){
-			if(players[i].score > players[winnerId].score){
-				winnerId = i;
+  	socket.on('player move', function(data){
+    		//Changing player coords
+    		switch(data.keyPressed){
+			case "ArrowUp":
+		    	    	if(players[data.playerId].coords.y-20 >= 0)players[data.playerId].coords.y -= 20;
+				else players[data.playerId].coords.y = 0;
+				break;
+			case "ArrowDown":
+       				if(players[data.playerId].coords.y+20 <= 380)players[data.playerId].coords.y += 20;
+				else players[data.playerId].coords.y = 380;
+				break;
+			case "ArrowLeft":
+			        if(players[data.playerId].coords.x-20 >= 0)players[data.playerId].coords.x -= 20;
+				else players[data.playerId].coords.x = 0;
+				break;
+			case "ArrowRight":
+        			if(players[data.playerId].coords.x+20 <= 380)players[data.playerId].coords.x += 20;
+				else players[data.playerId].coords.x = 380;
+   		}    
+   		io.emit('player move', {id: data.playerId, coords: players[data.playerId].coords});
+   		//Comparing with sweets coords
+    		var maxDistToEat = playersSize/2 + sweetsRadius;
+    		var diffX = 0, diffY = 0;
+    		for(i=0; i<sweetsCoords.length; i++){
+    		  	diffX = Math.abs(players[data.playerId].coords.x + playersSize/2 - sweetsCoords[i].x);
+      			diffY = Math.abs(players[data.playerId].coords.y + playersSize/2 - sweetsCoords[i].y);
+      			if(diffX < maxDistToEat && diffY < maxDistToEat){
+				//Removing the sweet + updating player score
+				sweetsCoords.splice(i,1);
+				players[data.playerId].score++;
+				io.emit('sweet eaten', {playerId: data.playerId, playerScore: players[data.playerId].score, sweetIndex: i});
+      			}
+    		}
+		if(sweetsCoords.length == 0){
+	  		//End of the game
+	  		var winnerId = 0;
+			for(i=1; i<players.length; i++){
+				if(players[i].score > players[winnerId].score){
+					winnerId = i;
+				}
 			}
-		}
-		io.emit('game over', winnerId);
-	}
-  });
+			io.emit('game over', winnerId);
+			nbPlayersReady = 0;
+		}	
+ 	});
   
-  socket.on('disconnect', function(){
-    nbPlayers--;
-    io.emit('connect disconnect', nbPlayers);
-    console.log('A player has left the game');
-  });
+ 	socket.on('disconnect', function(){
+    		nbPlayers--;
+    		io.emit('connect disconnect', nbPlayers);
+    		console.log('A player has left the game');
+ 	});
 });
 
 http.listen(3000, function(){
-  console.log('listening on *:3000');
+  	console.log('listening on *:3000');
 });
 
 
