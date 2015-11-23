@@ -107,7 +107,6 @@
 	  
       				socket.on('sweet eaten', function(data){
 					var chaine= "#score"+data.playerId;
-					console.log(chaine);
 					$(chaine).html(data.playerScore);
 					hideSweet(data);
     				});
